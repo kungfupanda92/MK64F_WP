@@ -28,6 +28,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include "fsl_i2c.h"
+#include "fsl_debug_console.h"
 
 /*******************************************************************************
  * Definitions
@@ -1510,7 +1511,6 @@ void I2C_SlaveTransferHandleIRQ(I2C_Type *base, void *i2cHandle)
 
         /* Clear the interrupt flag. */
         base->S = kI2C_IntPendingFlag;
-
         /* Call slave callback if this is the STOP of the transfer. */
         if (handle->isBusy)
         {
@@ -1631,6 +1631,18 @@ void I2C_SlaveTransferHandleIRQ(I2C_Type *base, void *i2cHandle)
         }
         else
         {
+
+			/*transfer 1 byte receive to upper layer*/
+			/* Slave receive, master writing to slave. */
+			xfer->event = kI2C_SlaveReceiveEvent;
+			uint8_t data = base->D;
+			handle->userData = &data;
+			if (handle->callback)
+			{
+				handle->callback(base, xfer, handle->userData);
+			}
+
+#if 0
             /* If we're out of data, invoke callback to get more. */
             if ((!xfer->data) || (!xfer->dataSize))
             {
@@ -1669,6 +1681,7 @@ void I2C_SlaveTransferHandleIRQ(I2C_Type *base, void *i2cHandle)
 #endif /* !FSL_FEATURE_I2C_HAS_START_STOP_DETECT or !FSL_FEATURE_I2C_HAS_STOP_DETECT */
                 }
             }
+#endif
         }
     }
     else

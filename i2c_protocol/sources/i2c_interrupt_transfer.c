@@ -46,7 +46,7 @@
 #define I2C_SLAVE_CLK_SRC I2C1_CLK_SRC
 #define I2C_MASTER_IRQ I2C0_IRQn
 #define I2C_SLAVE_IRQ I2C1_IRQn
-#define I2C_MASTER_SLAVE_ADDR_7BIT 0x7EU
+#define I2C_MASTER_SLAVE_ADDR_7BIT 0x53U
 #define I2C_BAUDRATE 100000U
 
 #define I2C_DATA_LENGTH 32U
@@ -67,6 +67,12 @@ i2c_slave_handle_t g_s_handle;
 volatile bool g_MasterCompletionFlag = false;
 volatile bool g_SlaveCompletionFlag = false;
 
+
+i2c_slave_config_t slaveConfig;
+
+i2c_master_config_t masterConfig;
+uint32_t sourceClock;
+i2c_master_transfer_t masterXfer;
 /*******************************************************************************
  * Code
  ******************************************************************************/
@@ -79,23 +85,22 @@ static void i2c_master_callback(I2C_Type *base, i2c_master_handle_t *handle, sta
         g_MasterCompletionFlag = true;
     }
 }
-
 static void i2c_slave_callback(I2C_Type *base, i2c_slave_transfer_t *xfer, void *userData)
 {
     switch (xfer->event)
     {
         /*  Transmit request */
         case kI2C_SlaveTransmitEvent:
-            /*  Update information for transmit process */
-            xfer->data = g_slave_buff;
-            xfer->dataSize = I2C_DATA_LENGTH;
+//            /*  Update information for transmit process */
+//            xfer->data = g_slave_buff;
+//            xfer->dataSize = I2C_DATA_LENGTH;
             break;
 
         /*  Receive request */
         case kI2C_SlaveReceiveEvent:
             /*  Update information for received process */
-            xfer->data = g_slave_buff;
-            xfer->dataSize = I2C_DATA_LENGTH;
+            PRINTF("Data 0x%x\r\n",*(uint8_t *)userData);
+//          PRINTF("index: %d-0x%2x\r\n",index++,g_slave_buff[0]);
             break;
 
         /*  Transfer done */
@@ -108,17 +113,16 @@ static void i2c_slave_callback(I2C_Type *base, i2c_slave_transfer_t *xfer, void 
             break;
     }
 }
+void i2cs_init(void);
+
+void i2cm_init(void);
 
 /*!
  * @brief Main function
  */
 int main(void)
 {
-    i2c_slave_config_t slaveConfig;
 
-    i2c_master_config_t masterConfig;
-    uint32_t sourceClock;
-    i2c_master_transfer_t masterXfer;
 
     BOARD_InitPins();
     BOARD_BootClockRUN();
@@ -130,6 +134,22 @@ int main(void)
     NVIC_SetPriority(I2C_SLAVE_IRQ, 0);
     NVIC_SetPriority(I2C_MASTER_IRQ, 1);
 
+
+    i2cs_init();
+    i2cm_init();
+
+    /*2.Set up i2c master to send data to slave*/
+    for (uint32_t i = 0U; i < I2C_DATA_LENGTH; i++)
+    {
+        g_master_buff[i] = i;
+    }
+
+    while (1)
+    {
+    }
+}
+void i2cs_init(void)
+{
     /*1.Set up i2c slave first*/
     /*
      * slaveConfig.addressingMode = kI2C_Address7bit;
@@ -156,23 +176,9 @@ int main(void)
 
     I2C_SlaveTransferCreateHandle(EXAMPLE_I2C_SLAVE_BASEADDR, &g_s_handle, i2c_slave_callback, NULL);
     I2C_SlaveTransferNonBlocking(EXAMPLE_I2C_SLAVE_BASEADDR, &g_s_handle, kI2C_SlaveCompletionEvent);
-    /*2.Set up i2c master to send data to slave*/
-    for (uint32_t i = 0U; i < I2C_DATA_LENGTH; i++)
-    {
-        g_master_buff[i] = i;
-    }
-
-    PRINTF("Master will send data :");
-    for (uint32_t i = 0U; i < I2C_DATA_LENGTH; i++)
-    {
-        if (i % 8 == 0)
-        {
-            PRINTF("\r\n");
-        }
-        PRINTF("0x%2x  ", g_master_buff[i]);
-    }
-    PRINTF("\r\n\r\n");
-
+}
+void i2cm_init(void)
+{
     /*
      * masterConfig.baudRate_Bps = 100000U;
      * masterConfig.enableHighDrive = false;
@@ -200,103 +206,4 @@ int main(void)
 
     I2C_MasterTransferCreateHandle(EXAMPLE_I2C_MASTER_BASEADDR, &g_m_handle, i2c_master_callback, NULL);
     I2C_MasterTransferNonBlocking(EXAMPLE_I2C_MASTER_BASEADDR, &g_m_handle, &masterXfer);
-
-    /*  Wait for transfer completed. */
-    while (!g_SlaveCompletionFlag)
-    {
-    }
-    g_SlaveCompletionFlag = false;
-
-    /*3.Transfer completed. Check the data.*/
-    for (uint32_t i = 0U; i < I2C_DATA_LENGTH; i++)
-    {
-        if (g_slave_buff[i] != g_master_buff[i])
-        {
-            PRINTF("\r\nError occured in this transfer ! \r\n");
-            break;
-        }
-    }
-
-    PRINTF("Slave received data :");
-    for (uint32_t i = 0U; i < I2C_DATA_LENGTH; i++)
-    {
-        if (i % 8 == 0)
-        {
-            PRINTF("\r\n");
-        }
-        PRINTF("0x%2x  ", g_slave_buff[i]);
-    }
-    PRINTF("\r\n\r\n");
-
-    /*4.Set up slave ready to send data to master.*/
-    for (uint32_t i = 0U; i < I2C_DATA_LENGTH; i++)
-    {
-        g_slave_buff[i] = ~g_slave_buff[i];
-    }
-
-    PRINTF("This time , slave will send data: :");
-    for (uint32_t i = 0U; i < I2C_DATA_LENGTH; i++)
-    {
-        if (i % 8 == 0)
-        {
-            PRINTF("\r\n");
-        }
-        PRINTF("0x%2x  ", g_slave_buff[i]);
-    }
-    PRINTF("\r\n\r\n");
-
-    /*  Already setup the slave transfer ready in item 1. */
-
-    /* 5.Set up master to receive data from slave. */
-
-    for (uint32_t i = 0U; i < I2C_DATA_LENGTH; i++)
-    {
-        g_master_buff[i] = 0;
-    }
-
-    masterXfer.slaveAddress = I2C_MASTER_SLAVE_ADDR_7BIT;
-    masterXfer.direction = kI2C_Read;
-    masterXfer.subaddress = (uint32_t)NULL;
-    masterXfer.subaddressSize = 0;
-    masterXfer.data = g_master_buff;
-    masterXfer.dataSize = I2C_DATA_LENGTH;
-
-    masterXfer.flags = kI2C_TransferDefaultFlag;
-
-    I2C_MasterTransferNonBlocking(EXAMPLE_I2C_MASTER_BASEADDR, &g_m_handle, &masterXfer);
-
-    /*  Reset master completion flag to false. */
-    g_MasterCompletionFlag = false;
-
-    /*  Wait for transfer completed. */
-    while (!g_MasterCompletionFlag)
-    {
-    }
-    g_MasterCompletionFlag = false;
-
-    /* 6.Transfer completed. Check the data.*/
-    for (uint32_t i = 0U; i < I2C_DATA_LENGTH; i++)
-    {
-        if (g_slave_buff[i] != g_master_buff[i])
-        {
-            PRINTF("\r\nError occured in the transfer ! \r\n");
-            break;
-        }
-    }
-
-    PRINTF("Master received data :");
-    for (uint32_t i = 0U; i < I2C_DATA_LENGTH; i++)
-    {
-        if (i % 8 == 0)
-        {
-            PRINTF("\r\n");
-        }
-        PRINTF("0x%2x  ", g_master_buff[i]);
-    }
-    PRINTF("\r\n\r\n");
-
-    PRINTF("\r\nEnd of I2C example .\r\n");
-    while (1)
-    {
-    }
 }
