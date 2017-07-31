@@ -10,7 +10,8 @@ C_SRCS += \
 ../drivers/fsl_gpio.c \
 ../drivers/fsl_i2c.c \
 ../drivers/fsl_smc.c \
-../drivers/fsl_uart.c 
+../drivers/fsl_uart.c \
+../drivers/i2cs.c 
 
 OBJS += \
 ./drivers/fsl_clock.o \
@@ -19,7 +20,8 @@ OBJS += \
 ./drivers/fsl_gpio.o \
 ./drivers/fsl_i2c.o \
 ./drivers/fsl_smc.o \
-./drivers/fsl_uart.o 
+./drivers/fsl_uart.o \
+./drivers/i2cs.o 
 
 C_DEPS += \
 ./drivers/fsl_clock.d \
@@ -28,7 +30,8 @@ C_DEPS += \
 ./drivers/fsl_gpio.d \
 ./drivers/fsl_i2c.d \
 ./drivers/fsl_smc.d \
-./drivers/fsl_uart.d 
+./drivers/fsl_uart.d \
+./drivers/i2cs.d 
 
 
 # Each subdirectory must supply rules for building sources it contributes

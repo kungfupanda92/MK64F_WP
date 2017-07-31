@@ -6,19 +6,22 @@
 C_SRCS += \
 ../sources/board.c \
 ../sources/clock_config.c \
-../sources/i2c_interrupt_transfer.c \
+../sources/i2c_msg.c \
+../sources/main.c \
 ../sources/pin_mux.c 
 
 OBJS += \
 ./sources/board.o \
 ./sources/clock_config.o \
-./sources/i2c_interrupt_transfer.o \
+./sources/i2c_msg.o \
+./sources/main.o \
 ./sources/pin_mux.o 
 
 C_DEPS += \
 ./sources/board.d \
 ./sources/clock_config.d \
-./sources/i2c_interrupt_transfer.d \
+./sources/i2c_msg.d \
+./sources/main.d \
 ./sources/pin_mux.d 
 
 
