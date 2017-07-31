@@ -46,6 +46,12 @@ endif
 -include ../makefile.defs
 
 # Add inputs and outputs from these tool invocations to the build variables 
+SECONDARY_FLASH += \
+i2c_protocol.bin \
+
+SECONDARY_SIZE += \
+i2c_protocol.siz \
+
 
 # All Target
 all: i2c_protocol.elf secondary-outputs
@@ -58,12 +64,24 @@ i2c_protocol.elf: $(OBJS) $(USER_OBJS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 
+i2c_protocol.bin: i2c_protocol.elf
+	@echo 'Invoking: Cross ARM GNU Create Flash Image'
+	arm-none-eabi-objcopy -O binary "i2c_protocol.elf"  "i2c_protocol.bin"
+	@echo 'Finished building: $@'
+	@echo ' '
+
+i2c_protocol.siz: i2c_protocol.elf
+	@echo 'Invoking: Cross ARM GNU Print Size'
+	arm-none-eabi-size --format=berkeley "i2c_protocol.elf"
+	@echo 'Finished building: $@'
+	@echo ' '
+
 # Other Targets
 clean:
-	-$(RM) $(C++_DEPS)$(OBJS)$(C_DEPS)$(ASM_DEPS)$(CC_DEPS)$(CPP_DEPS)$(CXX_DEPS)$(C_UPPER_DEPS)$(S_UPPER_DEPS) i2c_protocol.elf
+	-$(RM) $(SECONDARY_SIZE)$(C++_DEPS)$(OBJS)$(C_DEPS)$(ASM_DEPS)$(CC_DEPS)$(SECONDARY_FLASH)$(CPP_DEPS)$(CXX_DEPS)$(C_UPPER_DEPS)$(S_UPPER_DEPS) i2c_protocol.elf
 	-@echo ' '
 
-secondary-outputs:
+secondary-outputs: $(SECONDARY_FLASH) $(SECONDARY_SIZE)
 
 .PHONY: all clean dependents
 .SECONDARY:
